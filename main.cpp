@@ -11,6 +11,8 @@
 #include "pb_decode.h"
 #include "pb_encode.h"
 
+#include "fri_emulator/udp_server.hpp"
+
 #include <memory>
 
 class MonitoringMessageEncoder {
@@ -115,61 +117,6 @@ protected:
   FRIMonitoringMessage _pb_message;
 };
 
-class Sender {
-public:
-  Sender(const std::string &remote_ip, int remote_port) {
-    // Create a UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-      std::cerr << "Failed to create socket" << std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-    // Setup the remote address
-    memset(&remote_addr, 0, sizeof(remote_addr));
-    remote_addr.sin_family = AF_INET;
-    remote_addr.sin_port = htons(remote_port);
-
-    // Convert the IP address string to binary form
-    if (inet_pton(AF_INET, remote_ip.c_str(), &remote_addr.sin_addr) <= 0) {
-      std::cerr << "Invalid address or address not supported: " << remote_ip << std::endl;
-      close(sockfd);
-      exit(EXIT_FAILURE);
-    }
-
-    std::cout << "UDP socket ready to send data to " << remote_ip << ":" << remote_port
-              << std::endl;
-  }
-
-  ~Sender() { close(sockfd); }
-
-  // Method to send data
-  void sendData(char *data, const size_t &size) {
-    ssize_t sentBytes =
-        sendto(sockfd, data, size, 0, (const struct sockaddr *)&remote_addr, sizeof(remote_addr));
-    printf("sentBytes: %ld\n", sentBytes);
-    if (sentBytes < 0) {
-      std::cerr << "Failed to send data" << std::endl;
-    } else {
-      std::cout << "Sent: " << data << std::endl;
-    }
-  }
-
-  void receiveData(char *data, const size_t &size) {
-    ssize_t receivedBytes = recvfrom(sockfd, data, size, 0, NULL, NULL);
-    printf("receivedBytes: %ld\n", receivedBytes);
-    if (receivedBytes < 0) {
-      std::cerr << "Failed to receive data" << std::endl;
-    } else {
-      std::cout << "Received: " << data << std::endl;
-    }
-  }
-
-private:
-  int sockfd;
-  struct sockaddr_in remote_addr;
-};
-
 int main() {
   using namespace std;
 
@@ -178,7 +125,8 @@ int main() {
   int remote_port = 30200;
 
   // Create the sender instance
-  Sender sender(remote_ip, remote_port);
+  // Sender sender(remote_ip, remote_port);
+  fri_emulator::UDPServer sender(remote_ip, remote_port);
 
   // encoder
   MonitoringMessageEncoder encoder;
@@ -190,12 +138,12 @@ int main() {
   int cnt = 0;
   while (true) {
     auto bytes_written = encoder.to_buffer(data);
-    sender.sendData(data, bytes_written);
+    sender.send(data, bytes_written);
     sleep(0.1);
     ++cnt;
     printf("cnt: %d\n", cnt);
     printf("receiving response...\n");
-    sender.receiveData(data, KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE);
+    sender.receive(data, KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE);
   }
 
   return 0;

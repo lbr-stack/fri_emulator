@@ -1,13 +1,16 @@
 #ifndef FRI_EMULATOR__VIRTUAL_HARDWARE_HPP_
 #define FRI_EMULATOR__VIRTUAL_HARDWARE_HPP_
 
+#include <iostream>
 #include <memory>
 
-#include "friLBRCommand.h"
-#include "friLBRState.h"
+#include "FRIMessages.pb.h"
+#include "friLBRClient.h"
 
-#include "state_machine.hpp"
-#include "udp_server.hpp"
+#include "fri_emulator/commanding_message_decoder.hpp"
+#include "fri_emulator/monitoring_message_encoder.hpp"
+#include "fri_emulator/state_machine.hpp"
+#include "fri_emulator/udp_server.hpp"
 
 namespace fri_emulator {
 
@@ -19,10 +22,23 @@ public:
   void enable_logging();
   void run();
 
-protected:
-  KUKA::FRI::LBRState _state;
-  KUKA::FRI::LBRCommand _command;
+  // on receive command update state -> mimicing the robot
+  // this class mimics a server application...
+  // state:
+  // monitorin wait
+  // |      connection quality >= good
+  // V
+  // monitoring ready
+  // |
+  // V
+  // commanding wait
+  // |
+  // V
+  // commanding active (commands change robot state)
 
+protected:
+  std::unique_ptr<CommandingMessageDecoder> _commanding_decoder;
+  std::unique_ptr<MonitoringMessageEncoder> _monitoring_encoder;
   std::unique_ptr<UDPServer> _udp_server;
   std::unique_ptr<StateMachine> _state_machine;
 };

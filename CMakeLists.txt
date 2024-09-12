@@ -7,8 +7,8 @@ add_library(${PROJECT_NAME}
     src/commanding_message_decoder.cpp
     src/monitoring_message_encoder.cpp
     src/udp_server.cpp
-    # src/state_machine.cpp
-    # src/virtual_hardware.cpp
+    src/state_machine.cpp
+    src/virtual_hardware.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -35,6 +35,7 @@ target_link_libraries(
         FRIClient::FRIClient
         FRIClient::nanopb
         FRIClient::protobuf
+        ${PROJECT_NAME}
 )
 
 add_executable(encode
