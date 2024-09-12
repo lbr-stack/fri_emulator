@@ -59,6 +59,8 @@ public:
     _pb_message.has_ipoData = false;
     _pb_message.requestedTransformations_count = 0;
     _pb_message.has_endOfMessageData = false;
+    _pb_message.connectionInfo.has_receiveMultiplier = true;
+    _pb_message.connectionInfo.receiveMultiplier = 0;
 
     _pb_message.header.messageIdentifier = 2380098;
     _pb_message.header.reflectedSequenceCounter = 0;
@@ -182,22 +184,19 @@ int main() {
   MonitoringMessageEncoder encoder;
   encoder.init_message();
 
-  uint64_t dummy_buffer[1];
-  printf("sizeof(dummy_buffer): %ld\n", sizeof(dummy_buffer));
-
   // Send some test data
   char data[KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE];
   // get size of data
-  for (int i = 0; i < KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE; i++) {
-    data[i] = '0';
-    printf("%d, ", data[i]);
-  }
-  auto bytes_written = encoder.to_buffer(data);
+  int cnt = 0;
   while (true) {
+    auto bytes_written = encoder.to_buffer(data);
     sender.sendData(data, bytes_written);
     sleep(0.1);
+    ++cnt;
+    printf("cnt: %d\n", cnt);
+    printf("receiving response...\n");
+    sender.receiveData(data, KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE);
   }
-  // sender.receiveData(data, KUKA::FRI::FRI_MONITOR_MSG_MAX_SIZE);
 
   return 0;
 }
